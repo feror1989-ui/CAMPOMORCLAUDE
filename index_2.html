@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>FIELD OPS MPFM</title>
+<style>
+:root{
+  --bg:#12161a;
+  --surface:#1a2027;
+  --surface-2:#212934;
+  --line:#2c3642;
+  --text:#e9edf1;
+  --text-dim:#8a97a3;
+  --text-faint:#5b6672;
+  --amber:#e8871e;
+  --amber-dim:#8a5a22;
+  --green:#3ed68c;
+  --red:#e5484d;
+  --mono:'IBM Plex Mono', 'SFMono-Regular', Menlo, monospace;
+  --sans:'IBM Plex Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);height:100%;}
+body{display:flex;flex-direction:column;min-height:100vh;overscroll-behavior:none;}
+
+/* ---- header ---- */
+header{
+  position:sticky; top:0; z-index:10;
+  background:linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+  border-bottom:1px solid var(--line);
+  padding:14px 16px 12px;
+}
+.header-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px;}
+.brand{display:flex; align-items:baseline; gap:8px;}
+.brand .mark{
+  width:26px;height:26px;border-radius:4px;
+  background:var(--amber); color:#12161a;
+  font-family:var(--mono); font-weight:700; font-size:13px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.brand h1{font-size:15px; font-weight:600; letter-spacing:0.02em; margin:0;}
+.brand .tag{font-family:var(--mono); font-size:10px; color:var(--text-faint); letter-spacing:0.08em; text-transform:uppercase;}
+
+.icon-group{display:flex; gap:8px; flex-shrink:0;}
+.icon-btn{
+  position:relative; flex-shrink:0;
+  width:34px; height:34px; border-radius:9px;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer;
+}
+.icon-btn .pip{
+  position:absolute; top:-5px; right:-5px; background:var(--amber); color:#12161a;
+  font-family:var(--mono); font-size:9px; font-weight:700; border-radius:8px;
+  min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 3px;
+}
+
+.searchbar{
+  display:flex; align-items:center; gap:8px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+  padding:10px 12px;
+}
+.searchbar svg{flex-shrink:0; opacity:0.55;}
+.searchbar input{
+  flex:1; background:none; border:none; outline:none;
+  color:var(--text); font-family:var(--sans); font-size:15px;
+}
+.searchbar input::placeholder{color:var(--text-faint);}
+.clear-btn{
+  background:none;border:none;color:var(--text-faint);font-size:18px;
+  padding:0 2px; cursor:pointer; display:none; line-height:1;
+}
+.clear-btn.show{display:block;}
+
+.tabs{display:flex; gap:6px; margin-top:10px;}
+.tab{
+  flex:1; text-align:center; padding:8px 4px; border-radius:8px;
+  font-family:var(--mono); font-size:11px; letter-spacing:0.04em;
+  border:1px solid var(--line); color:var(--text-dim); background:var(--surface-2);
+  cursor:pointer; user-select:none; transition:background .15s, color .15s, border-color .15s;
+}
+.tab.active{background:var(--amber); color:#12161a; border-color:var(--amber); font-weight:600;}
+
+/* ---- summary strip ---- */
+.summary{
+  display:flex; gap:0; padding:10px 16px; border-bottom:1px solid var(--line);
+  background:var(--bg);
+}
+.summary .stat{flex:1; text-align:center;}
+.summary .stat b{display:block; font-family:var(--mono); font-size:17px; font-weight:600; color:var(--text);}
+.summary .stat span{display:block; font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
+.summary .stat.alert b{color:var(--red);}
+
+/* ---- main / list ---- */
+main{flex:1; overflow-y:auto; padding:10px 12px 90px;}
+.cluster-group{margin-bottom:14px;}
+.cluster-head{
+  display:flex; align-items:center; gap:8px; padding:6px 8px 6px 2px;
+  cursor:pointer;
+}
+.cluster-head .code{
+  font-family:var(--mono); font-size:12px; font-weight:700; color:#12161a;
+  background:var(--text-dim); border-radius:5px; padding:2px 7px; min-width:26px; text-align:center;
+}
+.cluster-head .code.no-plug{background:var(--red); color:#fff;}
+.cluster-head .code.plug{background:var(--green); color:#0a1f14;}
+.cluster-head .cname{font-size:12px; color:var(--text-dim); flex:1;}
+.cluster-head .count{font-family:var(--mono); font-size:11px; color:var(--text-faint);}
+.cluster-head .chev{color:var(--text-faint); font-size:11px; transition:transform .15s;}
+.cluster-head.open .chev{transform:rotate(90deg);}
+
+.well-list{display:none; flex-direction:column; gap:6px; padding:4px 0 2px;}
+.well-list.open{display:flex;}
+
+.well-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:11px 12px; cursor:pointer; transition:border-color .15s, background .15s;
+}
+.well-card:active{background:var(--surface-2);}
+.well-row1{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.well-name{font-family:var(--mono); font-size:13.5px; font-weight:600; letter-spacing:0.01em;}
+.badge{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:0.04em; text-transform:uppercase;
+  padding:2px 7px; border-radius:20px; border:1px solid transparent; white-space:nowrap;
+}
+.badge.ok{color:var(--green); border-color:rgba(62,214,140,0.35); background:rgba(62,214,140,0.08);}
+.badge.warn{color:var(--amber); border-color:rgba(232,135,30,0.4); background:rgba(232,135,30,0.1);}
+.badge.crit{color:var(--red); border-color:rgba(229,72,77,0.4); background:rgba(229,72,77,0.1);}
+.well-row2{display:flex; align-items:center; gap:10px; margin-top:5px;}
+.well-meta{font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:5px;}
+.dot{width:3px;height:3px;border-radius:50%;background:var(--text-faint);}
+
+.cluster-stats{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+  padding:12px 12px 13px; margin-bottom:8px;
+}
+.cs-row{display:flex; gap:8px;}
+.cs-box{
+  flex:1; text-align:center; background:var(--surface); border:1px solid var(--line);
+  border-radius:8px; padding:8px 4px;
+}
+.cs-box b{display:block; font-family:var(--mono); font-size:16px; font-weight:700; color:var(--text);}
+.cs-box span{display:block; font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-top:2px;}
+.cs-box.time{background:rgba(232,135,30,0.1); border-color:rgba(232,135,30,0.35);}
+.cs-box.time b{color:var(--amber);}
+.cs-detail{font-size:10.5px; color:var(--text-dim); margin-top:8px; text-align:center; line-height:1.5;}
+.cs-restr{display:flex; flex-wrap:wrap; gap:6px;}
+.restr-chip{
+  font-size:11px; color:var(--amber); background:rgba(232,135,30,0.1);
+  border:1px solid rgba(232,135,30,0.35); border-radius:20px; padding:4px 10px;
+}
+.cs-restr-empty{font-size:11.5px; color:var(--green);}
+
+.cs-filter{display:flex; gap:6px; margin-top:2px;}
+.cs-chip{
+  flex:1; text-align:center; font-family:var(--mono); font-size:10.5px; letter-spacing:0.02em;
+  padding:7px 4px; border-radius:8px; border:1px solid var(--line); color:var(--text-dim);
+  background:var(--surface); cursor:pointer; user-select:none;
+}
+.cs-chip.active{background:var(--amber); color:#12161a; border-color:var(--amber); font-weight:600;}
+
+.cs-elec{display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:11px;}
+.cs-elec-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.cs-elec.plug .cs-elec-icon{background:rgba(62,214,140,0.12); color:var(--green);}
+.cs-elec.noplug .cs-elec-icon{background:rgba(229,72,77,0.12); color:var(--red);}
+
+.empty-state{
+  text-align:center; padding:60px 20px; color:var(--text-faint);
+}
+.empty-state .big{font-size:32px; margin-bottom:8px;}
+.empty-state p{font-size:13px; line-height:1.5;}
+
+/* ---- detail sheet ---- */
+.sheet-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:20;
+  opacity:0; pointer-events:none; transition:opacity .2s;
+}
+.sheet-overlay.show{opacity:1; pointer-events:auto;}
+.sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:21;
+  background:var(--surface); border-radius:18px 18px 0 0; border:1px solid var(--line); border-bottom:none;
+  padding:10px 18px calc(22px + env(safe-area-inset-bottom));
+  transform:translateY(100%); transition:transform .25s cubic-bezier(.32,.72,0,1);
+  max-height:82vh; overflow-y:auto;
+}
+.sheet.show{transform:translateY(0);}
+.sheet-handle{width:36px; height:4px; background:var(--line); border-radius:3px; margin:2px auto 14px;}
+.sheet-title{display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;}
+.sheet-title h2{font-family:var(--mono); font-size:20px; margin:0; font-weight:700;}
+.sheet-sub{font-size:12px; color:var(--text-dim); margin-bottom:16px;}
+.sheet-sub b{color:var(--text);}
+
+.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+.field-box{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px;}
+.field-box.span2{grid-column:1 / -1;}
+.field-box label{display:block; font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px;}
+.field-box .val{font-size:13.5px; font-weight:500; line-height:1.4;}
+.field-box .val.mono{font-family:var(--mono);}
+
+.section-label{
+  font-family:var(--mono); font-size:10.5px; color:var(--text-faint); text-transform:uppercase;
+  letter-spacing:0.08em; margin:16px 0 8px; padding-top:14px; border-top:1px solid var(--line);
+}
+.section-label:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+
+.elec-row{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:12px;}
+.elec-icon{
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center; font-size:16px;
+}
+.elec-icon.plug{background:rgba(62,214,140,0.12); color:var(--green);}
+.elec-icon.noplug{background:rgba(229,72,77,0.12); color:var(--red);}
+.elec-text .t1{font-size:13px; font-weight:600;}
+.elec-text .t2{font-size:11.5px; color:var(--text-dim); margin-top:2px; line-height:1.4;}
+
+.close-btn{
+  width:100%; margin-top:18px; padding:13px; border-radius:10px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--text-dim); font-family:var(--sans); font-size:13px;
+  font-weight:500; cursor:pointer;
+}
+
+.edited-tag{
+  display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:9px;
+  color:var(--amber); background:rgba(232,135,30,0.12); border:1px solid rgba(232,135,30,0.35);
+  border-radius:10px; padding:1px 6px; margin-left:5px; vertical-align:middle;
+}
+
+/* ---- edit forms ---- */
+.edit-field{margin-bottom:12px;}
+.edit-field label{display:block; font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:5px;}
+.edit-field input[type=text], .edit-field textarea, .edit-field select{
+  width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  padding:10px 11px; color:var(--text); font-family:var(--sans); font-size:14px; outline:none;
+}
+.edit-field textarea{resize:vertical; min-height:56px; font-family:var(--sans);}
+.edit-field select{appearance:none; -webkit-appearance:none;}
+.edit-field input:focus, .edit-field textarea:focus, .edit-field select:focus{border-color:var(--amber);}
+.edit-hint{font-size:10.5px; color:var(--text-faint); margin:-8px 0 14px;}
+
+.btn-row{display:flex; gap:10px; margin-top:16px;}
+.btn{flex:1; padding:12px; border-radius:10px; font-size:13.5px; font-weight:600; border:1px solid transparent; cursor:pointer; font-family:var(--sans);}
+.btn-primary{background:var(--amber); color:#12161a;}
+.btn-secondary{background:var(--surface-2); border-color:var(--line); color:var(--text-dim);}
+.btn-ghost{background:none; border:1px solid var(--line); color:var(--text-dim);}
+
+/* ---- history ---- */
+.history-list{display:flex; flex-direction:column; gap:10px;}
+.history-item{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:11px 12px;}
+.history-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;}
+.history-id{font-family:var(--mono); font-size:11.5px; font-weight:700; color:var(--text);}
+.history-date{font-family:var(--mono); font-size:10px; color:var(--text-faint);}
+.history-field{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;}
+.history-diff{font-size:12.5px; line-height:1.5;}
+.history-diff .old{color:var(--text-faint); text-decoration:line-through;}
+.history-diff .new{color:var(--green);}
+.history-motivo{font-size:11.5px; color:var(--text-dim); margin-top:5px; font-style:italic;}
+
+/* ---- electricidad list ---- */
+.elec-list{display:flex; flex-direction:column; gap:8px;}
+.elec-list-row{
+  display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:10px; padding:10px 12px; cursor:pointer;
+}
+.elec-list-row:active{background:var(--surface);}
+.elec-list-mid{flex:1; min-width:0;}
+.elec-list-top{font-size:12.5px; font-weight:600;}
+.elec-list-sub{font-size:11px; color:var(--text-dim); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+/* ---- registro diario ---- */
+.rg-banner{
+  font-size:11.5px; padding:9px 11px; border-radius:8px; margin-bottom:10px; line-height:1.4;
+}
+.rg-banner.crit{background:rgba(229,72,77,0.1); border:1px solid rgba(229,72,77,0.4); color:var(--red);}
+.rg-banner.warn{background:rgba(232,135,30,0.1); border:1px solid rgba(232,135,30,0.4); color:var(--amber);}
+.eq-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:6px;}
+.eq-card{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:9px 10px;}
+.eq-card.over{border-color:rgba(229,72,77,0.5);}
+.eq-num{font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:6px; font-weight:600;}
+.eq-stats{display:flex; gap:8px;}
+.eq-stat{flex:1; text-align:center;}
+.eq-stat b{display:block; font-family:var(--mono); font-size:15px; font-weight:700;}
+.eq-stat span{display:block; font-size:9px; color:var(--text-faint); margin-top:1px;}
+.eq-stat.over b{color:var(--red);}
+
+.registro-list{display:flex; flex-direction:column; gap:8px;}
+.registro-item{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:11px 12px;}
+.reg-top{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+.reg-eq{font-family:var(--mono); font-size:11px; font-weight:700; color:var(--text);}
+.reg-tipo{font-family:var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:0.03em; padding:1px 7px; border-radius:20px;}
+.reg-tipo.facilidad{color:var(--green); background:rgba(62,214,140,0.1); border:1px solid rgba(62,214,140,0.35);}
+.reg-tipo.cabeza{color:var(--amber); background:rgba(232,135,30,0.1); border:1px solid rgba(232,135,30,0.35);}
+.reg-hora{font-family:var(--mono); font-size:10.5px; color:var(--text-faint); margin-left:auto;}
+.reg-pozo{font-size:13px; font-weight:600;}
+.reg-cluster{font-size:11px; color:var(--text-dim); font-weight:400;}
+.reg-obs{font-size:11.5px; color:var(--text-dim); margin-top:4px;}
+.reg-del{
+  margin-top:8px; background:none; border:1px solid var(--line); color:var(--red);
+  border-radius:7px; padding:5px 10px; font-size:11px; cursor:pointer;
+}
+
+/* ---- reporte diario ubicación equipos ---- */
+.eqreg-list{display:flex; flex-direction:column; gap:8px;}
+.eqreg-card{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:11px 12px; cursor:pointer;}
+.eqreg-card:active{background:var(--surface);}
+.eqreg-card.empty{border-style:dashed;}
+.eqreg-top{display:flex; align-items:center; justify-content:space-between;}
+.eqreg-name{font-family:var(--mono); font-size:13px; font-weight:700;}
+.eqreg-status{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.03em; padding:2px 8px; border-radius:20px;}
+.eqreg-status.pending{color:var(--text-faint); border:1px solid var(--line);}
+.eqreg-status.ok{color:var(--green); border:1px solid rgba(62,214,140,0.35); background:rgba(62,214,140,0.08);}
+.eqreg-sub{font-size:11.5px; color:var(--text-dim); margin-top:5px;}
+.eqreg-pozos{font-family:var(--mono); font-size:11.5px; margin-top:4px;}
+.eqreg-obs{font-size:11px; color:var(--text-faint); margin-top:5px; line-height:1.4;}
+
+.pozo-row{display:flex; gap:6px; margin-bottom:8px;}
+.pozo-row-select{
+  flex:2; background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  padding:9px 10px; color:var(--text); font-family:var(--sans); font-size:13.5px; outline:none;
+}
+.pozo-row-cambio{
+  flex:1.3; background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  padding:9px 6px; color:var(--text); font-family:var(--sans); font-size:12px; outline:none;
+}
+.pozo-row-del{
+  background:none; border:1px solid var(--line); color:var(--red); border-radius:8px;
+  width:34px; flex-shrink:0; cursor:pointer; font-size:14px;
+}
+
+.foot-note{
+  text-align:center; font-family:var(--mono); font-size:9.5px; color:var(--text-faint);
+  padding:14px 20px 6px; letter-spacing:0.03em; line-height:1.6;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <div class="mark">M</div>
+      <div>
+        <h1>FIELD OPS MPFM</h1>
+        <div class="tag">Consulta y novedades · offline</div>
+      </div>
+    </div>
+    <div class="icon-group">
+      <button class="icon-btn" id="regBtn" title="Registro diario de medición">
+        <span>📋</span>
+      </button>
+      <button class="icon-btn" id="elecBtn" title="Electricidad por clúster">
+        <span>⚡</span>
+      </button>
+      <button class="icon-btn" id="historyBtn" title="Historial de novedades">
+        <span>🕘</span>
+        <span class="pip" id="historyPip" style="display:none;">0</span>
+      </button>
+    </div>
+  </div>
+  <div class="searchbar">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5.2" stroke="currentColor" stroke-width="1.4"/><path d="M11 11L14.2 14.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    <input id="searchInput" type="text" placeholder="Pozo, o código exacto de clúster (ej. P)" autocomplete="off" autocapitalize="characters">
+    <button class="clear-btn" id="clearBtn">×</button>
+  </div>
+  <div class="tabs">
+    <div class="tab" data-campo="TODOS">TODOS</div>
+    <div class="tab" data-campo="MORICHE">MORICHE</div>
+    <div class="tab" data-campo="ABARCO">ABARCO</div>
+  </div>
+</header>
+
+<div class="summary" id="summaryStrip"></div>
+
+<main id="mainList"></main>
+
+<div class="sheet-overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div id="sheetContent"></div>
+</div>
+
+<script>
+const POZOS = [{"campo": "MORICHE", "cluster": "P", "pozo": "MORICHE-1", "estado": "OPERATIVO", "restriccion": "Valvula General", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "A", "pozo": "MORICHE-A-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-ST3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-4", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA DE PRUEBA CON PASO (COLOMBINA)", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AA", "pozo": "MORICHE-AA-9", "estado": "OPERATIVO", "restriccion": "ALERTA", "medicion": "FACILIDAD", "observacion": "VALVULA DE PRUEBA SE ABRÉ CON VIBRACION", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AB", "pozo": "MORICHE-AB-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AB-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AC", "pozo": "MORICHE-AC-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AC", "pozo": "MORICHE-AC-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AG", "pozo": "MORICHE-AG-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AG", "pozo": "MORICHE-AG-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AH2", "pozo": "MORICHE-AH2-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AH2", "pozo": "MORICHE-AH2-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AH2", "pozo": "MORICHE-AH2-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AH2", "pozo": "MORICHE-AH2-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AH2", "pozo": "MORICHE-AH2-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AI", "pozo": "MORICHE-AI-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AI", "pozo": "MORICHE-AI-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AI", "pozo": "MORICHE-AI-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AI", "pozo": "MORICHE-AI-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AI@7", "pozo": "MORICHE-AI-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AL", "pozo": "MORICHE-AL-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AL", "pozo": "MORICHE-AL-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AL", "pozo": "MORICHE-AL-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AL", "pozo": "MORICHE-AL-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AL", "pozo": "MORICHE-AL-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AL", "pozo": "MORICHE-AL-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-1", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-3", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-4", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-5", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-6", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-7", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-9", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-10", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-11", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-12", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-13", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-14", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN", "pozo": "MORICHE-AN-15", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN2", "pozo": "MORICHE-AN2-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN2", "pozo": "MORICHE-AN2-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AO", "pozo": "MORICHE-AO-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AT", "pozo": "MORICHE-AT-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AT", "pozo": "MORICHE-AT-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-6", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-ST9", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-10", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON PASO + VALVULA PRUEBA CON PASO (COLOMBINA) + VALVULA CHEQUE CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-12", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-13", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-16", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-AU-17", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AV", "pozo": "MORICHE-AV-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-ST4", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-5", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-9", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL CON PASO", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-AW-11", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL CON PASO", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-ST1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-ST6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-10", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-11", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-13", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-15", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AX", "pozo": "MORICHE-AX-16", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-3", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-6", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-7", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-9", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-12", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-13", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-AY-15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-ST2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-3", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AZ", "pozo": "MORICHE-AZ-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "B", "pozo": "MORICHE-B-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "B", "pozo": "MORICHE-B-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "B", "pozo": "MORICHE-B-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "B", "pozo": "MORICHE-B-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "B", "pozo": "MORICHE-B-5", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-1", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-3", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-13", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-BA-19", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-3", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-ST4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-7", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-8", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-10", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-ST12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-13", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-ST14", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-16", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-17", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-18", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-19", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BB", "pozo": "MORICHE-BB-20", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-ST1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-2", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-ST4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-ST7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-ST10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-12", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-13", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-16", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-17", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-18", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BC", "pozo": "MORICHE-BC-19", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-ST4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-5", "estado": "OPERATIVO", "restriccion": "INTERMITENTE", "medicion": "FACILIDAD", "observacion": "PROGRAMAR DE PRIMERO JORNADA MAÑANA", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-ST8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BD", "pozo": "MORICHE-BD-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BE", "pozo": "MORICHE-BE-ST1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BE", "pozo": "MORICHE-BE-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BE", "pozo": "MORICHE-BE-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BE", "pozo": "MORICHE-BE-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BE", "pozo": "MORICHE-BE-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-6", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BF", "pozo": "MORICHE-BF-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-ST2", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "FACILIDAD", "observacion": "PROGRAMAR DE PRIMERO O ULTIMO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-5", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BG", "pozo": "MORICHE-BG-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BH", "pozo": "MORICHE-BH-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BH", "pozo": "MORICHE-BH-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BH", "pozo": "MORICHE-BH-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BH", "pozo": "MORICHE-BH-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BH", "pozo": "MORICHE-BH-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BH", "pozo": "MORICHE-BH-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BH", "pozo": "MORICHE-BH-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BI", "pozo": "MORICHE-BI-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BI", "pozo": "MORICHE-BI-ST2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BI", "pozo": "MORICHE-BI-ST4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BI", "pozo": "MORICHE-BI-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BI", "pozo": "MORICHE-BI-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BI", "pozo": "MORICHE-BI-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BI", "pozo": "MORICHE-BI-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BJ", "pozo": "MORICHE-BJ-1", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BJ", "pozo": "MORICHE-BJ-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BJ", "pozo": "MORICHE-BJ-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BJ", "pozo": "MORICHE-BJ-4", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BJ", "pozo": "MORICHE-BJ-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BK", "pozo": "MORICHE-BK-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BK", "pozo": "MORICHE-BK-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BK", "pozo": "MORICHE-BK-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BK", "pozo": "MORICHE-BK-6", "estado": "OPERATIVO", "restriccion": "VAVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BK", "pozo": "MORICHE-BK-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BK", "pozo": "MORICHE-BK-ST9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-3", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "FACILIDAD", "observacion": "INGRESAR PERSONAL DE MEDICIÓN", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BL", "pozo": "MORICHE-BL-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-BM-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-BM-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-BM-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-BM-4", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-BM-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-BM-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-BM-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BO", "pozo": "MORICHE-BO-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BO", "pozo": "MORICHE-BO-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BO", "pozo": "MORICHE-BO-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BO", "pozo": "MORICHE-BO-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BO", "pozo": "MORICHE-BO-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-3", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-5", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "POSIBLE PASO EN VALVULA DE PRUEBA", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-BP-9", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BR", "pozo": "MORICHE-BR-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BR", "pozo": "MORICHE-BR-2", "estado": "OPERATIVO", "restriccion": "VAVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BR", "pozo": "MORICHE-BR-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BR", "pozo": "MORICHE-BR-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BR", "pozo": "MORICHE-BR-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BR", "pozo": "MORICHE-BR-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BR", "pozo": "MORICHE-BR-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BT", "pozo": "MORICHE-BT-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BT", "pozo": "MORICHE-BT-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BW", "pozo": "MORICHE-BW-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BW", "pozo": "MORICHE-BW-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BW", "pozo": "MORICHE-BW-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BW", "pozo": "MORICHE-BW-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-3", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "FACILIDAD", "observacion": "INGRESAR PERSONAL DE MEDICIÓN", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-ST4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-9", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "C", "pozo": "MORICHE-C-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-CB-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-CB-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-CB-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-CB-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-CB-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-CB-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-CB-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-1", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA DE PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-4", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-6", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-7", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "CABEZA DE POZO", "observacion": "SIN VALVULA DE PRUEBA", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-8", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-9", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-11", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CC", "pozo": "MORICHE-CC-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-6", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-7", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-8", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-10", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-11", "estado": "OPERATIVO", "restriccion": "VERIFICAR", "medicion": "VERIFICAR", "observacion": "POSIBLE COLOMBINA", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CD", "pozo": "MORICHE-CD-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-5", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-12", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VÁLVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-13", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-16", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-18", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-CE-19", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CF", "pozo": "MORICHE-CF-15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CG", "pozo": "MORICHE-CG-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CJ", "pozo": "MORICHE-CJ-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CJ", "pozo": "MORICHE-CJ-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CJ", "pozo": "MORICHE-CJ-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "D", "pozo": "MORICHE-D-1", "estado": "OPERATIVO", "restriccion": "INTERMITENTE", "medicion": "FACILIDAD", "observacion": "8:00 AM -2:00 PM", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "D", "pozo": "MORICHE-D-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "D", "pozo": "MORICHE-D-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "D", "pozo": "MORICHE-D-4", "estado": "OPERATIVO", "restriccion": "INTERMITENTE", "medicion": "FACILIDAD", "observacion": "8:00 AM -2:00 PM", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-8", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "FACILIDAD", "observacion": "VALVULA DE PRUEBA CON PASO VERIFICAR", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "E", "pozo": "MORICHE-E-13", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-3", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-7", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-9", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "G", "pozo": "MORICHE-G-13", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-7", "estado": "OPERATIVO", "restriccion": "VALVULA DE PRUEBA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA DE PRUEBA MUY DURA", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "H", "pozo": "MORICHE-H-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-6", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-7", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-8", "estado": "OPERATIVO", "restriccion": "Valvula General", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON  CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "I", "pozo": "MORICHE-I-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-ST7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "J", "pozo": "MORICHE-J-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-ST2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-ST4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-6", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL DAÑADA", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-ST8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-9", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "K", "pozo": "MORICHE-K-13", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L@1", "pozo": "MORICHE-L-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "L", "pozo": "MORICHE-L-13", "estado": "OPERATIVO", "restriccion": "SIN VALVULA DE PRUEBA", "medicion": "CABEZA DE POZO", "observacion": "SIN VALVULA DE PRUEBA", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "M", "pozo": "MORICHE-M-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "M", "pozo": "MORICHE-M-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "M", "pozo": "MORICHE-M-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "M", "pozo": "MORICHE-M-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "M", "pozo": "MORICHE-M-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "M", "pozo": "MORICHE-M-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "M", "pozo": "MORICHE-M-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N", "pozo": "MORICHE-N-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N", "pozo": "MORICHE-N-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N", "pozo": "MORICHE-N-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N", "pozo": "MORICHE-N-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N", "pozo": "MORICHE-N-ST5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N", "pozo": "MORICHE-N-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N", "pozo": "MORICHE-N-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N@9", "pozo": "MORICHE-N-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N10@11", "pozo": "MORICHE-N-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "N10@11", "pozo": "MORICHE-N-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AU", "pozo": "MORICHE-N1", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BA", "pozo": "MORICHE-NST14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CE", "pozo": "MORICHE-N15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "CB", "pozo": "MORICHE-N17", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BT", "pozo": "MORICHE-N19", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AN2", "pozo": "MORICHE-N2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AW", "pozo": "MORICHE-N5", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "AY", "pozo": "MORICHE-N6", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BE", "pozo": "MORICHE-N9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-ST2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-7", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "O", "pozo": "MORICHE-O-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "P", "pozo": "MORICHE-P-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "P", "pozo": "MORICHE-P-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "P", "pozo": "MORICHE-P-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "P", "pozo": "MORICHE-P-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "P", "pozo": "MORICHE-P-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Q", "pozo": "MORICHE-Q-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "R", "pozo": "MORICHE-R-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S", "pozo": "MORICHE-S-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S", "pozo": "MORICHE-S-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S", "pozo": "MORICHE-S-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S", "pozo": "MORICHE-S-ST4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S", "pozo": "MORICHE-S-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S", "pozo": "MORICHE-S-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S", "pozo": "MORICHE-S-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S8@14", "pozo": "MORICHE-S-8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S8@14", "pozo": "MORICHE-S-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S8@14", "pozo": "MORICHE-S-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S8@14", "pozo": "MORICHE-S-11", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S8@14", "pozo": "MORICHE-S-12", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S8@14", "pozo": "MORICHE-S-13", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "S8@14", "pozo": "MORICHE-S-14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BP", "pozo": "MORICHE-S1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BK", "pozo": "MORICHE-S10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BJ", "pozo": "MORICHE-S11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "BM", "pozo": "MORICHE-S3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "T", "pozo": "MORICHE-T-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "T", "pozo": "MORICHE-T-ST2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "T", "pozo": "MORICHE-T-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "T", "pozo": "MORICHE-T-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "T", "pozo": "MORICHE-T-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "T", "pozo": "MORICHE-T-6", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-ST2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-7", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "U", "pozo": "MORICHE-U-9", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "V", "pozo": "MORICHE-V-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "V", "pozo": "MORICHE-V-2", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "V", "pozo": "MORICHE-V-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "V", "pozo": "MORICHE-V-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "V", "pozo": "MORICHE-V-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "V", "pozo": "MORICHE-V-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "V", "pozo": "MORICHE-V-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-7", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "W", "pozo": "MORICHE-W-12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y", "pozo": "MORICHE-Y-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y", "pozo": "MORICHE-Y-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y", "pozo": "MORICHE-Y-3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y", "pozo": "MORICHE-Y-4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y", "pozo": "MORICHE-Y-5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y6@9", "pozo": "MORICHE-Y-6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y6@9", "pozo": "MORICHE-Y-7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y6@9", "pozo": "MORICHE-Y-8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "MORICHE", "cluster": "Y6@9", "pozo": "MORICHE-Y-9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH05", "pozo": "ABARCO-1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "AH-3", "pozo": "ABARCO-AH-3", "estado": "DESCONOCIDO", "restriccion": "VALVULA GENRAL", "medicion": "CABEZA DE POZO", "observacion": "CHEQUE PRESENTA FALLA", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "AW-7", "pozo": "ABARCO-AW-7", "estado": "DESCONOCIDO", "restriccion": "VERIFICAR", "medicion": "VERIFICAR", "observacion": "VERIFICAR", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH1", "pozo": "ABARCO-PH1-H1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH1", "pozo": "ABARCO-PH1-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH1", "pozo": "ABARCO-PH1-H4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH1", "pozo": "ABARCO-PH1-H6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H4", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H5", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH2", "pozo": "ABARCO-PH2-H9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H4", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH3", "pozo": "ABARCO-PH3-H10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H3", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H8", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H9", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "FACILIDAD", "observacion": "VALVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH4", "pozo": "ABARCO-PH4-H11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H1", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H5", "estado": "OPERATIVO", "restriccion": "COLOMBINA", "medicion": "CABEZA DE POZO", "observacion": "VALVULA PRUEBA CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H12", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H13", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H14", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H15", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H16", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H17", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H18", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H19", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH5", "pozo": "ABARCO-PH5-H20", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H5", "estado": "OPERATIVO", "restriccion": "VALVULA GENERAL", "medicion": "CABEZA DE POZO", "observacion": "VALVULA GENERAL CON PASO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH7", "pozo": "ABARCO-PH7-H11", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H5", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H6", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH8", "pozo": "ABARCO-PH8-H9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H1", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H3", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H4", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H7", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H8", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H9", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "PH09", "pozo": "ABARCO-PH9-H10", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "FACILIDAD", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "ABARCO Q", "pozo": "ABARCO-Q-2", "estado": "OPERATIVO", "restriccion": "Ninguna", "medicion": "CABEZA DE POZO", "observacion": "", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "ABARCO-X-2", "pozo": "ABARCO-X-2", "estado": "OPERATIVO", "restriccion": "SIN FACILIDAD", "medicion": "CABEZA DE POZO", "observacion": "MEDICIÓN EN CABEZA DE POZO", "fecha": "2026-07-26"}, {"campo": "ABARCO", "cluster": "ABARCO-N2", "pozo": "JAZMIN-N2", "estado": "OPERATIVO", "restriccion": "SIN FACILIDAD", "medicion": "CABEZA DE POZO", "observacion": "MEDICIÓN EN CABEZA DE POZO", "fecha": "2026-07-26"}];
+const ELECT = [{"cluster": "B", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "P", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "A", "toma_plug": "NO", "observacion": "CONECTAR A03", "tipo_conexion": "COLA"}, {"cluster": "AA", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AB", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AZ", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AC", "toma_plug": "NO", "observacion": "CONECTAR VARIADOR ACO4", "tipo_conexion": "COLA"}, {"cluster": "AG", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AH2", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AI", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AI@7", "toma_plug": "NO", "observacion": "CONECTAR VARIADOR AI07", "tipo_conexion": "COLA"}, {"cluster": "AL", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AN", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR DEL POZO SOLICITADO A CABEZA SOLO TIENEN TOMA PLUG CERCANO AN(1,2,3,14)", "tipo_conexion": "COLA"}, {"cluster": "AN2", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AO", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AT", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AU", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AV", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR AV05", "tipo_conexion": "COLA"}, {"cluster": "AW", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AX", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AY", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BA", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR BA01", "tipo_conexion": "COLA"}, {"cluster": "BB", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BC", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BD", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR BD01", "tipo_conexion": "EXTENSIÓN"}, {"cluster": "BE", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BF", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR BF08", "tipo_conexion": "COLA"}, {"cluster": "BG", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BH", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BI", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BJ", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BK", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR SUR 10", "tipo_conexion": "COLA"}, {"cluster": "BL", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BM", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR BM01", "tipo_conexion": "COLA"}, {"cluster": "BO", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BP", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BR", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BT", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "BW", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "C", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR C009", "tipo_conexion": "COLA"}, {"cluster": "CB", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "CC", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR CC01", "tipo_conexion": "COLA"}, {"cluster": "CD", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR CD11 O CD12", "tipo_conexion": "EXTENSIÓN"}, {"cluster": "CE", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR CE01 O CE19", "tipo_conexion": ""}, {"cluster": "CF", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR CF06", "tipo_conexion": ""}, {"cluster": "CG", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "CJ", "toma_plug": "NO", "observacion": "VERIFICAR", "tipo_conexion": ""}, {"cluster": "D", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "E", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "G", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "H", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "I", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "J", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "K", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "L@1", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "L", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "M", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "N", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "N@9", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR N009", "tipo_conexion": "COLA"}, {"cluster": "N10@11", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR N010", "tipo_conexion": "COLA"}, {"cluster": "O", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "Q", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "R", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "S", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR S01", "tipo_conexion": "EXTENSIÓN"}, {"cluster": "S8@14", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "T", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR T01", "tipo_conexion": "EXTENSIÓN"}, {"cluster": "U", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "V", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "W", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "Y", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "Y6@9", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR Y006", "tipo_conexion": "EXTENSIÓN"}, {"cluster": "PH05", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "AH-3", "toma_plug": "NO", "observacion": "VERIFICAR", "tipo_conexion": ""}, {"cluster": "AW-7", "toma_plug": "NO", "observacion": "VERIFICAR", "tipo_conexion": ""}, {"cluster": "PH1", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR PH01-01", "tipo_conexion": "COLA"}, {"cluster": "PH2", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "PH3", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR PH3-04", "tipo_conexion": "COLA"}, {"cluster": "PH4", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "PH5", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "PH7", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "PH8", "toma_plug": "SI", "observacion": "", "tipo_conexion": ""}, {"cluster": "PH09", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR PH9-07", "tipo_conexion": "COLA"}, {"cluster": "ABARCO Q", "toma_plug": "NO", "observacion": "VERIFICAR", "tipo_conexion": ""}, {"cluster": "ABARCO-X-2", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR X-2", "tipo_conexion": "COLA"}, {"cluster": "ABARCO-N2", "toma_plug": "NO", "observacion": "CONECTAR A EL VARIADOR N2", "tipo_conexion": "COLA"}];
+
+const elecByCluster = {};
+ELECT.forEach(e => { elecByCluster[e.cluster] = e; });
+
+const STORAGE_KEY_OV = 'fieldops_mpfm_overrides_v1';
+const STORAGE_KEY_LOG = 'fieldops_mpfm_changelog_v1';
+const STORAGE_KEY_REG = 'fieldops_mpfm_registros_v1';
+const EQUIPOS = ['LPT 01','LPT 08','LPT 10','LPT 12','LPT 15','LPT 17','LPT 20'];
+
+function loadJSON(key, fallback){
+  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }
+  catch(e){ return fallback; }
+}
+function saveJSON(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch(e){ return false; }
+}
+
+let overrides = loadJSON(STORAGE_KEY_OV, {pozos:{}, clusters:{}});
+let changelog = loadJSON(STORAGE_KEY_LOG, []);
+let registros = loadJSON(STORAGE_KEY_REG, []);
+let storageOk = true;
+let editing = null; // null | 'pozo' | 'cluster'
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+// build pozo autocomplete datalist once
+(function buildPozoDatalist(){
+  const dl = document.createElement('datalist');
+  dl.id = 'pozoDatalist';
+  dl.innerHTML = POZOS.map(p => `<option value="${escAttr(p.pozo)}">`).join('');
+  document.body.appendChild(dl);
+})();
+
+function persist(){
+  const ok1 = saveJSON(STORAGE_KEY_OV, overrides);
+  const ok2 = saveJSON(STORAGE_KEY_LOG, changelog);
+  storageOk = ok1 && ok2;
+  updateHistoryPip();
+}
+
+function escAttr(s){ return (s||'').toString().replace(/"/g,'&quot;'); }
+function escHtml(s){ return (s||'').toString().replace(/</g,'&lt;'); }
+
+function effectivePozo(p){
+  const ov = overrides.pozos[p.pozo];
+  if (!ov) return p;
+  return Object.assign({}, p, ov, {_edited:true});
+}
+
+function effectiveElect(clusterCode){
+  const base = elecByCluster[clusterCode] || null;
+  const ov = overrides.clusters[clusterCode];
+  if (!base && !ov) return null;
+  const merged = Object.assign({cluster:clusterCode, toma_plug:'', observacion:'', tipo_conexion:''}, base||{}, ov||{});
+  merged._edited = !!ov;
+  return merged;
+}
+
+function logChange(tipo, id, campo, anterior, nuevo, motivo){
+  changelog.unshift({
+    ts: new Date().toISOString(), tipo, id, campo,
+    anterior: (anterior===undefined||anterior===null||anterior==='') ? '(vacío)' : anterior,
+    nuevo: (nuevo===undefined||nuevo===null||nuevo==='') ? '(vacío)' : nuevo,
+    motivo: motivo || ''
+  });
+}
+
+function formatTs(ts){
+  try{
+    return new Date(ts).toLocaleString('es-CO', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
+  }catch(e){ return ts; }
+}
+
+function updateHistoryPip(){
+  const pip = document.getElementById('historyPip');
+  if (!pip) return;
+  if (changelog.length > 0){
+    pip.style.display = 'flex';
+    pip.textContent = changelog.length > 99 ? '99+' : changelog.length;
+  } else {
+    pip.style.display = 'none';
+  }
+}
+
+
+let state = { campo: null, query: '', openClusters: new Set() };
+
+function norm(s){ return (s||'').toString().toUpperCase().trim(); }
+
+function restrictionLevel(r){
+  const v = norm(r);
+  if (!v || v === 'NINGUNA') return 'ok';
+  if (v.includes('SIN FACILIDAD') || v.includes('SIN VALVULA') || v.includes('ALERTA')) return 'crit';
+  return 'warn';
+}
+
+function hasPlug(clusterCode){
+  const e = effectiveElect(clusterCode);
+  if (!e) return null;
+  return norm(e.toma_plug) === 'SI';
+}
+
+function renderSummary(list){
+  const total = list.length;
+  const clusters = new Set(list.map(p => p.cluster)).size;
+  const conRestriccion = list.filter(p => restrictionLevel(p.restriccion) !== 'ok').length;
+  const cabeza = list.filter(p => norm(p.medicion).startsWith('CABEZA')).length;
+  document.getElementById('summaryStrip').innerHTML = `
+    <div class="stat"><b>${total}</b><span>Pozos</span></div>
+    <div class="stat"><b>${clusters}</b><span>Clústeres</span></div>
+    <div class="stat"><b>${cabeza}</b><span>A cabeza</span></div>
+    <div class="stat ${conRestriccion?'alert':''}"><b>${conRestriccion}</b><span>Con restricción</span></div>
+  `;
+}
+
+function groupByCluster(list){
+  const groups = {};
+  list.forEach(p => {
+    if(!groups[p.cluster]) groups[p.cluster] = [];
+    groups[p.cluster].push(p);
+  });
+  return Object.keys(groups).sort().map(k => ({cluster:k, wells:groups[k].sort((a,b)=>a.pozo.localeCompare(b.pozo))}));
+}
+
+function clusterStats(wells){
+  const facilidad = wells.filter(w => norm(w.medicion).startsWith('FACILIDAD'));
+  const cabeza = wells.filter(w => norm(w.medicion).startsWith('CABEZA'));
+  const diasFacilidad = facilidad.length ? Math.ceil(facilidad.length / 3) : 0;
+  const diasCabeza = cabeza.length ? Math.ceil(cabeza.length / 2) : 0;
+  const restricciones = {};
+  wells.forEach(w => {
+    if (restrictionLevel(w.restriccion) !== 'ok'){
+      const key = w.restriccion || 'Restricción';
+      restricciones[key] = (restricciones[key] || 0) + 1;
+    }
+  });
+  return {
+    facilidadCount: facilidad.length,
+    cabezaCount: cabeza.length,
+    diasFacilidad, diasCabeza,
+    diasTotal: diasFacilidad + diasCabeza,
+    restricciones
+  };
+}
+
+let clusterFilter = {};
+
+function clusterStatsHtml(wells, clusterCode){
+  const s = clusterStats(wells);
+  const restrEntries = Object.entries(s.restricciones);
+  const detailParts = [];
+  if (s.diasFacilidad > 0) detailParts.push(`${s.facilidadCount} en facilidad · ${s.diasFacilidad}d (máx. 3/día)`);
+  if (s.diasCabeza > 0) detailParts.push(`${s.cabezaCount} a cabeza · ${s.diasCabeza}d (máx. 2/día)`);
+
+  const filter = clusterFilter[clusterCode] || 'todos';
+  const e = effectiveElect(clusterCode);
+  const plug = e ? norm(e.toma_plug) === 'SI' : null;
+  let elecHtml;
+  if (e && plug){
+    elecHtml = `<div class="cs-elec plug"><div class="cs-elec-icon">⏻</div><div class="elec-text"><div class="t1">Toma plug disponible</div><div class="t2">El clúster ${clusterCode} tiene toma eléctrica propia.</div></div></div>`;
+  } else if (e && !plug){
+    elecHtml = `<div class="cs-elec noplug"><div class="cs-elec-icon">⚠</div><div class="elec-text"><div class="t1">Requiere conexión a variador${e.tipo_conexion ? ' · '+escHtml(e.tipo_conexion) : ''}</div><div class="t2">${escHtml(e.observacion) || 'Sin toma plug en el clúster.'}</div></div></div>`;
+  } else {
+    elecHtml = `<div class="cs-elec noplug"><div class="cs-elec-icon">?</div><div class="elec-text"><div class="t1">Sin dato eléctrico registrado</div><div class="t2">Este clúster no aparece en la hoja eléctrica.</div></div></div>`;
+  }
+
+  return `
+    <div class="cluster-stats">
+      <div class="cs-row">
+        <div class="cs-box"><b>${s.facilidadCount}</b><span>En facilidad</span></div>
+        <div class="cs-box"><b>${s.cabezaCount}</b><span>A cabeza</span></div>
+        <div class="cs-box time"><b>${s.diasTotal}</b><span>Día${s.diasTotal!==1?'s':''} est.</span></div>
+      </div>
+      <div class="cs-detail">${detailParts.join(' &nbsp;·&nbsp; ')}</div>
+
+      <div class="section-label" style="margin:12px 0 6px;padding-top:0;border-top:none;">Conexión eléctrica del clúster</div>
+      ${elecHtml}
+
+      <div class="section-label">Restricciones del clúster</div>
+      ${restrEntries.length ? `
+        <div class="cs-restr">
+          ${restrEntries.map(([k,v]) => `<div class="restr-chip">${k}${v>1?' × '+v:''}</div>`).join('')}
+        </div>
+      ` : `<div class="cs-restr-empty">Sin restricciones registradas en este clúster.</div>`}
+
+      <div class="section-label">Ver pozos por punto de medición</div>
+      <div class="cs-filter">
+        <div class="cs-chip ${filter==='todos'?'active':''}" data-filter="todos" data-cluster="${escAttr(clusterCode)}">Todos (${wells.length})</div>
+        <div class="cs-chip ${filter==='facilidad'?'active':''}" data-filter="facilidad" data-cluster="${escAttr(clusterCode)}">Facilidad (${s.facilidadCount})</div>
+        <div class="cs-chip ${filter==='cabeza'?'active':''}" data-filter="cabeza" data-cluster="${escAttr(clusterCode)}">Cabeza (${s.cabezaCount})</div>
+      </div>
+    </div>
+  `;
+}
+
+function render(){
+  const q = norm(state.query);
+  let searching = q.length > 0;
+
+  // nothing selected yet and no search: show a prompt instead of the full list
+  if (state.campo === null && !searching){
+    const summaryEl = document.getElementById('summaryStrip');
+    summaryEl.style.display = 'none';
+    summaryEl.innerHTML = '';
+    document.getElementById('mainList').innerHTML = `
+      <div class="empty-state">
+        <div class="big">—</div>
+        <p>Elige <b>TODOS</b>, <b>MORICHE</b> o <b>ABARCO</b> arriba<br>para ver los clústeres, o busca un pozo/clúster.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let baseList = state.campo === null
+    ? POZOS.map(effectivePozo)
+    : POZOS.map(effectivePozo).filter(p => state.campo === 'TODOS' || p.campo === state.campo);
+
+  let list = baseList;
+  let exactCluster = null;
+
+  if (searching){
+    const matchObj = baseList.find(p => norm(p.cluster) === q);
+    if (matchObj){
+      exactCluster = matchObj.cluster;
+      list = baseList.filter(p => p.cluster === exactCluster);
+    } else {
+      list = baseList.filter(p => norm(p.pozo).includes(q));
+    }
+  }
+
+  const summaryEl = document.getElementById('summaryStrip');
+  if (exactCluster){
+    summaryEl.style.display = 'none';
+    summaryEl.innerHTML = '';
+  } else {
+    summaryEl.style.display = '';
+    renderSummary(list);
+  }
+
+  const main = document.getElementById('mainList');
+
+  if (list.length === 0){
+    main.innerHTML = `<div class="empty-state"><div class="big">—</div><p>Sin coincidencias.<br>Verifica el nombre del pozo o el código exacto del clúster.</p></div>`;
+    return;
+  }
+
+  const groups = groupByCluster(list);
+
+  // auto-expand groups while searching
+  if (searching) groups.forEach(g => state.openClusters.add(g.cluster));
+
+  main.innerHTML = groups.map(g => {
+    const plug = hasPlug(g.cluster);
+    const codeClass = plug === true ? 'plug' : (plug === false ? 'no-plug' : '');
+    const isOpen = state.openClusters.has(g.cluster);
+    const filter = clusterFilter[g.cluster] || 'todos';
+    let displayWells = g.wells;
+    if (filter === 'facilidad') displayWells = g.wells.filter(w => norm(w.medicion).startsWith('FACILIDAD'));
+    else if (filter === 'cabeza') displayWells = g.wells.filter(w => norm(w.medicion).startsWith('CABEZA'));
+    const wellsHtml = displayWells.map(p => wellCardHtml(p)).join('');
+    const statsHtml = isOpen ? clusterStatsHtml(g.wells, g.cluster) : '';
+    const clusterElec = effectiveElect(g.cluster);
+    const clusterEditedTag = clusterElec && clusterElec._edited ? '<span class="edited-tag">✎ eléctrico</span>' : '';
+    return `
+      <div class="cluster-group">
+        <div class="cluster-head ${isOpen?'open':''}" data-cluster="${g.cluster}">
+          <div class="code ${codeClass}">${g.cluster}</div>
+          <div class="cname">${g.wells[0].campo} ${clusterEditedTag}</div>
+          <div class="count">${g.wells.length} pozo${g.wells.length!==1?'s':''}</div>
+          <div class="chev">▶</div>
+        </div>
+        <div class="well-list ${isOpen?'open':''}" data-clusterlist="${g.cluster}">
+          ${statsHtml}
+          ${wellsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.querySelectorAll('.cs-chip').forEach(el => {
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      clusterFilter[el.dataset.cluster] = el.dataset.filter;
+      render();
+    });
+  });
+
+  document.querySelectorAll('.cluster-head').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = el.dataset.cluster;
+      if (state.openClusters.has(c)) state.openClusters.delete(c); else state.openClusters.add(c);
+      render();
+    });
+  });
+
+  document.querySelectorAll('.well-card').forEach(el => {
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      openDetail(el.dataset.pozo);
+    });
+  });
+}
+
+function wellCardHtml(p){
+  const lvl = restrictionLevel(p.restriccion);
+  const badgeClass = lvl === 'ok' ? 'ok' : (lvl === 'crit' ? 'crit' : 'warn');
+  const badgeText = lvl === 'ok' ? 'SIN RESTRICCIÓN' : (p.restriccion || 'RESTRICCIÓN');
+  const medIcon = norm(p.medicion).startsWith('CABEZA') ? 'A CABEZA' : (norm(p.medicion).startsWith('FACILIDAD') ? 'FACILIDAD' : (p.medicion || 'S/D'));
+  return `
+    <div class="well-card" data-pozo="${p.pozo}">
+      <div class="well-row1">
+        <div class="well-name">${p.pozo}${p._edited ? '<span class="edited-tag">✎</span>' : ''}</div>
+        <div class="badge ${badgeClass}">${badgeText}</div>
+      </div>
+      <div class="well-row2">
+        <div class="well-meta">${medIcon}</div>
+        <div class="dot"></div>
+        <div class="well-meta">${p.estado || 'S/D'}</div>
+      </div>
+    </div>
+  `;
+}
+
+function pozoViewHtml(p, e){
+  const lvl = restrictionLevel(p.restriccion);
+  return `
+    <div class="section-label">Medición</div>
+    <div class="field-grid">
+      <div class="field-box">
+        <label>Punto de medición</label>
+        <div class="val">${p.medicion || 'No registrado'}</div>
+      </div>
+      <div class="field-box">
+        <label>Restricción</label>
+        <div class="val">${(p.restriccion && norm(p.restriccion)!=='NINGUNA') ? escHtml(p.restriccion) : 'Ninguna'}</div>
+      </div>
+      ${p.observacion ? `<div class="field-box span2"><label>Observación</label><div class="val">${escHtml(p.observacion)}</div></div>` : ''}
+      <div class="field-box span2"><label>Última actualización</label><div class="val mono">${p.fecha || 'S/D'}${p._edited ? ' <span class="edited-tag">✎ Editado</span>' : ''}</div></div>
+    </div>
+
+    <div class="section-label">Electricidad del clúster</div>
+    ${elecDisplayHtml(e, p.cluster)}
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px;" id="openClusterEdit">Actualizar dato eléctrico del clúster</button>
+
+    <button class="btn btn-primary" style="width:100%;margin-top:18px;" id="openPozoEdit">Reportar novedad de este pozo</button>
+    <button class="close-btn" id="closeSheet">Cerrar</button>
+  `;
+}
+
+function elecDisplayHtml(e, clusterCode){
+  if (!e){
+    return `
+      <div class="elec-row">
+        <div class="elec-icon noplug">?</div>
+        <div class="elec-text">
+          <div class="t1">Sin dato eléctrico registrado</div>
+          <div class="t2">Este clúster no aparece en la hoja de restricciones eléctricas.</div>
+        </div>
+      </div>`;
+  }
+  const plug = norm(e.toma_plug) === 'SI';
+  const editedTag = e._edited ? ' <span class="edited-tag">✎ Editado</span>' : '';
+  if (plug){
+    return `
+      <div class="elec-row">
+        <div class="elec-icon plug">⏻</div>
+        <div class="elec-text">
+          <div class="t1">Toma plug disponible${editedTag}</div>
+          <div class="t2">El clúster ${clusterCode} cuenta con toma eléctrica propia.</div>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="elec-row">
+      <div class="elec-icon noplug">⚠</div>
+      <div class="elec-text">
+        <div class="t1">Requiere conexión a variador${editedTag}</div>
+        <div class="t2">${escHtml(e.observacion) || 'Sin toma plug en el clúster.'}${e.tipo_conexion ? ' · Conexión: '+escHtml(e.tipo_conexion) : ''}</div>
+      </div>
+    </div>`;
+}
+
+function pozoEditFormHtml(p){
+  return `
+    <div class="edit-field">
+      <label>Estado</label>
+      <input type="text" id="editEstado" value="${escAttr(p.estado||'')}">
+    </div>
+    <div class="edit-field">
+      <label>Restricción</label>
+      <input type="text" id="editRestriccion" value="${escAttr(p.restriccion||'')}" placeholder="Ej. Ninguna, Válvula General...">
+    </div>
+    <div class="edit-field">
+      <label>Punto de medición</label>
+      <select id="editMedicion">
+        <option value="FACILIDAD" ${norm(p.medicion).startsWith('FACILIDAD')?'selected':''}>Facilidad</option>
+        <option value="CABEZA DE POZO" ${norm(p.medicion).startsWith('CABEZA')?'selected':''}>A cabeza</option>
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Observación</label>
+      <textarea id="editObservacion">${escHtml(p.observacion||'')}</textarea>
+    </div>
+    <div class="edit-field">
+      <label>Motivo de la novedad</label>
+      <input type="text" id="editMotivo" placeholder="Ej. válvula reparada hoy">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="cancelEdit">Cancelar</button>
+      <button class="btn btn-primary" id="saveEdit">Guardar novedad</button>
+    </div>
+    ${p._edited ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;" id="resetPozoBtn">Restablecer datos originales del pozo</button>` : ''}
+  `;
+}
+
+function clusterEditFormHtml(e, clusterCode){
+  const cur = e || {toma_plug:'', observacion:'', tipo_conexion:''};
+  const plugVal = norm(cur.toma_plug) === 'SI' ? 'SI' : 'NO';
+  return `
+    <div class="edit-hint">Editando datos eléctricos del clúster <b>${clusterCode}</b> — aplica a todos los pozos de este clúster.</div>
+    <div class="edit-field">
+      <label>Toma plug</label>
+      <select id="editTomaPlug">
+        <option value="SI" ${plugVal==='SI'?'selected':''}>Sí — toma propia</option>
+        <option value="NO" ${plugVal==='NO'?'selected':''}>No — requiere variador</option>
+      </select>
+    </div>
+    <div class="edit-field">
+      <label>Tipo de conexión</label>
+      <input type="text" id="editTipoConexion" value="${escAttr(cur.tipo_conexion||'')}" placeholder="Ej. COLA, EXTENSIÓN...">
+    </div>
+    <div class="edit-field">
+      <label>Observación</label>
+      <textarea id="editElecObservacion">${escHtml(cur.observacion||'')}</textarea>
+    </div>
+    <div class="edit-field">
+      <label>Motivo de la novedad</label>
+      <input type="text" id="editElecMotivo" placeholder="Ej. se instaló variador nuevo">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="cancelEdit">Cancelar</button>
+      <button class="btn btn-primary" id="saveClusterEdit">Guardar novedad</button>
+    </div>
+    ${e && e._edited ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;" id="resetClusterBtn">Restablecer datos originales del clúster</button>` : ''}
+  `;
+}
+
+function openDetail(pozoName){
+  editing = null;
+  renderDetailSheet(pozoName);
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+
+function renderDetailSheet(pozoName){
+  const raw = POZOS.find(x => x.pozo === pozoName);
+  if (!raw) return;
+  const p = effectivePozo(raw);
+  const e = effectiveElect(p.cluster);
+
+  const lvl = restrictionLevel(p.restriccion);
+  const restrColor = lvl === 'ok' ? 'ok' : (lvl === 'crit' ? 'crit' : 'warn');
+
+  let bodyHtml;
+  if (editing === 'pozo') bodyHtml = pozoEditFormHtml(p);
+  else if (editing === 'cluster') bodyHtml = clusterEditFormHtml(e, p.cluster);
+  else bodyHtml = pozoViewHtml(p, e);
+
+  document.getElementById('sheetContent').innerHTML = `
+    <div class="sheet-title">
+      <h2>${p.pozo}</h2>
+      <div class="badge ${restrColor}">${p.estado || 'S/D'}</div>
+    </div>
+    <div class="sheet-sub">Clúster <b>${p.cluster}</b> · Campo <b>${p.campo}</b></div>
+    ${bodyHtml}
+  `;
+
+  document.getElementById('closeSheet')?.addEventListener('click', closeDetail);
+  document.getElementById('cancelEdit')?.addEventListener('click', () => { editing = null; renderDetailSheet(pozoName); });
+  document.getElementById('openPozoEdit')?.addEventListener('click', () => { editing = 'pozo'; renderDetailSheet(pozoName); });
+  document.getElementById('openClusterEdit')?.addEventListener('click', () => { editing = 'cluster'; renderDetailSheet(pozoName); });
+  document.getElementById('saveEdit')?.addEventListener('click', () => savePozoEdits(pozoName));
+  document.getElementById('saveClusterEdit')?.addEventListener('click', () => saveClusterEdits(p.cluster, pozoName));
+  document.getElementById('resetPozoBtn')?.addEventListener('click', () => resetPozo(pozoName));
+  document.getElementById('resetClusterBtn')?.addEventListener('click', () => resetCluster(p.cluster, pozoName));
+}
+
+function savePozoEdits(pozoName){
+  const raw = POZOS.find(x => x.pozo === pozoName);
+  const p = effectivePozo(raw);
+  const estado = document.getElementById('editEstado').value.trim();
+  const restriccion = document.getElementById('editRestriccion').value.trim();
+  const medicion = document.getElementById('editMedicion').value;
+  const observacion = document.getElementById('editObservacion').value.trim();
+  const motivo = document.getElementById('editMotivo').value.trim();
+  const today = new Date().toISOString().slice(0,10);
+
+  const fields = [
+    ['estado','Estado', p.estado, estado],
+    ['restriccion','Restricción', p.restriccion, restriccion],
+    ['medicion','Punto de medición', p.medicion, medicion],
+    ['observacion','Observación', p.observacion, observacion]
+  ];
+  let changed = false;
+  fields.forEach(([key,label,oldVal,newVal]) => {
+    if (norm(oldVal) !== norm(newVal)){
+      changed = true;
+      logChange('pozo', pozoName, label, oldVal, newVal, motivo);
+    }
+  });
+
+  if (changed){
+    overrides.pozos[pozoName] = Object.assign({}, overrides.pozos[pozoName]||{}, { estado, restriccion, medicion, observacion, fecha: today });
+    persist();
+  }
+  editing = null;
+  renderDetailSheet(pozoName);
+  render();
+}
+
+function saveClusterEditsCore(clusterCode){
+  const cur = effectiveElect(clusterCode) || {toma_plug:'', observacion:'', tipo_conexion:''};
+  const toma_plug = document.getElementById('editTomaPlug').value;
+  const tipo_conexion = document.getElementById('editTipoConexion').value.trim();
+  const observacion = document.getElementById('editElecObservacion').value.trim();
+  const motivo = document.getElementById('editElecMotivo').value.trim();
+
+  const fields = [
+    ['toma_plug','Toma plug', cur.toma_plug, toma_plug],
+    ['tipo_conexion','Tipo de conexión', cur.tipo_conexion, tipo_conexion],
+    ['observacion','Observación eléctrica', cur.observacion, observacion]
+  ];
+  let changed = false;
+  fields.forEach(([key,label,oldVal,newVal]) => {
+    if (norm(oldVal) !== norm(newVal)){
+      changed = true;
+      logChange('cluster', clusterCode, label, oldVal, newVal, motivo);
+    }
+  });
+
+  if (changed){
+    overrides.clusters[clusterCode] = Object.assign({}, overrides.clusters[clusterCode]||{}, { toma_plug, tipo_conexion, observacion });
+    persist();
+  }
+  return changed;
+}
+
+function saveClusterEdits(clusterCode, pozoName){
+  saveClusterEditsCore(clusterCode);
+  editing = null;
+  renderDetailSheet(pozoName);
+  render();
+}
+
+function resetPozo(pozoName){
+  delete overrides.pozos[pozoName];
+  persist();
+  editing = null;
+  renderDetailSheet(pozoName);
+  render();
+}
+
+function resetCluster(clusterCode, pozoName){
+  delete overrides.clusters[clusterCode];
+  persist();
+  editing = null;
+  renderDetailSheet(pozoName);
+  render();
+}
+
+function historyHtml(){
+  const items = changelog.slice(0, 300);
+  const itemsHtml = items.length ? items.map(h => `
+    <div class="history-item">
+      <div class="history-top">
+        <span class="history-id">${h.tipo === 'pozo' ? 'POZO' : 'CLÚSTER'} ${escHtml(h.id)}</span>
+        <span class="history-date">${formatTs(h.ts)}</span>
+      </div>
+      <div class="history-field">${escHtml(h.campo)}</div>
+      <div class="history-diff"><span class="old">${escHtml(h.anterior)}</span> → <span class="new">${escHtml(h.nuevo)}</span></div>
+      ${h.motivo ? `<div class="history-motivo">"${escHtml(h.motivo)}"</div>` : ''}
+    </div>
+  `).join('') : `<div class="empty-state"><div class="big">—</div><p>Aún no hay novedades registradas.</p></div>`;
+
+  return `
+    <div class="sheet-title"><h2 style="font-size:17px;">Historial de novedades</h2></div>
+    <div class="sheet-sub">${changelog.length} cambio${changelog.length!==1?'s':''} guardados en este dispositivo${storageOk?'':' · ⚠ no se pudieron guardar, revisa el navegador'}</div>
+    <div class="history-list">${itemsHtml}</div>
+    ${changelog.length ? `<button class="btn btn-secondary" style="width:100%;margin-top:14px;" id="copyHistory">Copiar historial como texto</button>` : ''}
+    <button class="close-btn" id="closeSheet">Cerrar</button>
+  `;
+}
+
+function openHistory(){
+  document.getElementById('sheetContent').innerHTML = historyHtml();
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+  document.getElementById('closeSheet')?.addEventListener('click', closeDetail);
+  document.getElementById('copyHistory')?.addEventListener('click', (ev) => {
+    const text = changelog.map(h =>
+      `[${formatTs(h.ts)}] ${h.tipo === 'pozo' ? 'POZO' : 'CLUSTER'} ${h.id} — ${h.campo}: ${h.anterior} -> ${h.nuevo}${h.motivo ? ' ('+h.motivo+')' : ''}`
+    ).join('\n');
+    const done = () => { ev.target.textContent = 'Copiado ✓'; setTimeout(() => { ev.target.textContent = 'Copiar historial como texto'; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(() => { prompt('Copia el texto manualmente:', text); });
+    } else {
+      prompt('Copia el texto manualmente:', text);
+    }
+  });
+}
+
+function allClusters(){
+  const set = new Set();
+  POZOS.forEach(p => set.add(p.cluster));
+  ELECT.forEach(e => set.add(e.cluster));
+  return Array.from(set).sort();
+}
+
+function electricidadRowHtml(clusterCode){
+  const e = effectiveElect(clusterCode);
+  const plug = e ? norm(e.toma_plug) === 'SI' : null;
+  const found = POZOS.find(p => p.cluster === clusterCode);
+  const campo = found ? found.campo : '';
+  const codeClass = plug === true ? 'plug' : (plug === false ? 'no-plug' : '');
+  const editedTag = e && e._edited ? '<span class="edited-tag">✎</span>' : '';
+  const statusText = plug === true ? 'Toma plug disponible' : (plug === false ? 'Requiere variador' : 'Sin dato eléctrico');
+  const detailText = e ? [e.tipo_conexion, e.observacion].filter(Boolean).join(' · ') : '';
+  return `
+    <div class="elec-list-row" data-cluster="${escAttr(clusterCode)}">
+      <div class="code ${codeClass}">${clusterCode}</div>
+      <div class="elec-list-mid">
+        <div class="elec-list-top">${statusText} ${editedTag}</div>
+        <div class="elec-list-sub">${campo}${detailText ? ' · '+escHtml(detailText) : ''}</div>
+      </div>
+      <div class="chev">▶</div>
+    </div>
+  `;
+}
+
+let elecViewEditing = null;
+
+function electricidadHtml(){
+  if (elecViewEditing){
+    const e = effectiveElect(elecViewEditing);
+    return `
+      <div class="sheet-title"><h2 style="font-size:17px;">Clúster ${elecViewEditing}</h2></div>
+      ${clusterEditFormHtml(e, elecViewEditing)}
+    `;
+  }
+  const clusters = allClusters();
+  const rows = clusters.map(electricidadRowHtml).join('');
+  return `
+    <div class="sheet-title"><h2 style="font-size:17px;">Electricidad por clúster</h2></div>
+    <div class="sheet-sub">${clusters.length} clústeres · toca uno para actualizar su disponibilidad</div>
+    <div class="elec-list">${rows}</div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:14px;" id="exportElecCsv">Exportar a Excel (CSV)</button>
+    <button class="close-btn" id="closeSheet">Cerrar</button>
+  `;
+}
+
+function openElectricidad(){
+  elecViewEditing = null;
+  renderElectricidadSheet();
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+
+function renderElectricidadSheet(){
+  document.getElementById('sheetContent').innerHTML = electricidadHtml();
+  document.getElementById('closeSheet')?.addEventListener('click', closeDetail);
+  document.getElementById('cancelEdit')?.addEventListener('click', () => { elecViewEditing = null; renderElectricidadSheet(); });
+  document.getElementById('saveClusterEdit')?.addEventListener('click', () => {
+    saveClusterEditsCore(elecViewEditing);
+    elecViewEditing = null;
+    renderElectricidadSheet();
+    render();
+  });
+  document.getElementById('resetClusterBtn')?.addEventListener('click', () => {
+    delete overrides.clusters[elecViewEditing];
+    persist();
+    elecViewEditing = null;
+    renderElectricidadSheet();
+    render();
+  });
+  document.getElementById('exportElecCsv')?.addEventListener('click', exportElectricidadCsv);
+  document.querySelectorAll('.elec-list-row').forEach(el => {
+    el.addEventListener('click', () => { elecViewEditing = el.dataset.cluster; renderElectricidadSheet(); });
+  });
+}
+
+function csvEscape(v){
+  const s = (v===undefined||v===null) ? '' : v.toString();
+  if (/[;"\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+function exportElectricidadCsv(){
+  const clusters = allClusters();
+  const today = new Date().toISOString().slice(0,10);
+  const header = ['CLUSTER','TOMA PLUG','OBSERVACION','TIPO DE CONEXION','EDITADO EN APP','FECHA EXPORTACION'];
+  const rows = clusters.map(c => {
+    const e = effectiveElect(c) || {toma_plug:'', observacion:'', tipo_conexion:''};
+    return [c, e.toma_plug||'', e.observacion||'', e.tipo_conexion||'', (e._edited ? 'SI' : 'NO'), today];
+  });
+  const csvLines = [header, ...rows].map(r => r.map(csvEscape).join(';'));
+  const csvContent = '\uFEFF' + csvLines.join('\r\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `electricidad_clusters_${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ======= Registro diario de ubicación de equipos MPFM =======
+
+let registroDate = null;
+let regEditingEquipo = null; // equipo code being edited, or null
+let regDraftPozos = []; // working list of {pozo, cambio} while editing
+let regDraftCluster = ''; // cluster selected for today's entry, drives the pozo dropdowns
+
+function entryFor(fecha, equipo){
+  return registros.find(r => r.fecha === fecha && r.equipo === equipo) || null;
+}
+
+function saveRegistros(){
+  saveJSON(STORAGE_KEY_REG, registros);
+}
+
+function equipoCardHtml(fecha, equipo){
+  const e = entryFor(fecha, equipo);
+  if (!e){
+    return `
+      <div class="eqreg-card empty" data-equipo="${escAttr(equipo)}">
+        <div class="eqreg-top">
+          <span class="eqreg-name">${equipo}</span>
+          <span class="eqreg-status pending">Sin registrar</span>
+        </div>
+      </div>
+    `;
+  }
+  const nPozos = e.pozos.length;
+  const clusterLabel = e.clusterHoy ? `Clúster ${e.clusterHoy}` : '—';
+  const horaText = e.horaMovilizacion ? ` · ${e.horaMovilizacion}` : '';
+  const movText = e.movilizado ? ` · movilizado a ${escHtml(e.ubicacionDestino||'—')}` : '';
+  const pozosText = e.pozos.map(p => escHtml(p.pozo)).join(', ') || '—';
+  return `
+    <div class="eqreg-card filled" data-equipo="${escAttr(equipo)}">
+      <div class="eqreg-top">
+        <span class="eqreg-name">${equipo}</span>
+        <span class="eqreg-status ok">${nPozos} pozo${nPozos!==1?'s':''}</span>
+      </div>
+      <div class="eqreg-sub">${escHtml(e.campo)} · ${clusterLabel}${horaText}${movText}</div>
+      <div class="eqreg-pozos">${pozosText}</div>
+      ${e.observacion ? `<div class="eqreg-obs">${escHtml(e.observacion)}</div>` : ''}
+    </div>
+  `;
+}
+
+function registroDiarioHtml(){
+  const fecha = registroDate;
+  if (regEditingEquipo){
+    return equipoEditFormHtml(fecha, regEditingEquipo);
+  }
+  const filledCount = EQUIPOS.filter(eq => entryFor(fecha, eq)).length;
+  const cards = EQUIPOS.map(eq => equipoCardHtml(fecha, eq)).join('');
+  return `
+    <div class="sheet-title"><h2 style="font-size:17px;">Reporte diario de ubicación MPFM</h2></div>
+    <div class="edit-field" style="margin-bottom:10px;">
+      <label>Fecha</label>
+      <input type="date" id="regFecha" value="${fecha}">
+    </div>
+    <div class="sheet-sub">${filledCount} de ${EQUIPOS.length} equipos registrados este día</div>
+    <div class="eqreg-list">${cards}</div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:14px;" id="exportRegCsv">Exportar día a Excel (CSV)</button>
+    <button class="close-btn" id="closeSheet">Cerrar</button>
+  `;
+}
+
+function pozoRowEditHtml(idx, row){
+  const wells = regDraftCluster ? POZOS.filter(p => p.cluster === regDraftCluster) : [];
+  const options = wells.map(p => {
+    const tipo = norm(p.medicion).startsWith('CABEZA') ? 'cabeza' : 'facilidad';
+    return `<option value="${escAttr(p.pozo)}" ${p.pozo===row.pozo?'selected':''}>${escHtml(p.pozo)} · ${tipo}</option>`;
+  }).join('');
+  return `
+    <div class="pozo-row" data-idx="${idx}">
+      <select class="pozo-row-select" data-idx="${idx}" ${!regDraftCluster?'disabled':''}>
+        <option value="">${regDraftCluster ? '— Selecciona pozo —' : 'Elige primero el clúster'}</option>
+        ${options}
+      </select>
+      <select class="pozo-row-cambio" data-idx="${idx}">
+        <option value="SI" ${row.cambio==='SI'?'selected':''}>Cambio: SÍ</option>
+        <option value="NO" ${row.cambio==='NO'?'selected':''}>Cambio: NO</option>
+      </select>
+      <button class="pozo-row-del" data-idx="${idx}" title="Quitar">✕</button>
+    </div>
+  `;
+}
+
+function equipoEditFormHtml(fecha, equipo){
+  const existing = entryFor(fecha, equipo);
+  if (regDraftPozos.length === 0 && existing){
+    regDraftPozos = existing.pozos.map(p => ({pozo:p.pozo, cambio:p.cambio}));
+  } else if (regDraftPozos.length === 0){
+    regDraftPozos = [{pozo:'', cambio:'SI'}];
+  }
+  if (!regDraftCluster && existing){
+    regDraftCluster = existing.clusterHoy || (existing.pozos[0] ? (POZOS.find(p=>p.pozo===existing.pozos[0].pozo)||{}).cluster : '') || '';
+  }
+  const campo = existing ? existing.campo : (POZOS.find(p=>p.cluster===regDraftCluster)||{}).campo || 'MORICHE';
+  const movilizado = existing ? existing.movilizado : false;
+  const ubicacionActual = existing ? existing.ubicacionActual : '';
+  const ubicacionDestino = existing ? existing.ubicacionDestino : '';
+  const horaMovilizacion = existing ? existing.horaMovilizacion : '';
+  const observacion = existing ? existing.observacion : '';
+  const clusters = allClusters();
+
+  return `
+    <div class="sheet-title"><h2 style="font-size:17px;">${equipo} — ${fecha}</h2></div>
+
+    <div class="edit-field">
+      <label>Clúster donde está el equipo hoy</label>
+      <select id="eqCluster">
+        <option value="">— Selecciona clúster —</option>
+        ${clusters.map(c => `<option value="${escAttr(c)}" ${c===regDraftCluster?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="edit-hint">Al elegir el clúster, la lista de pozos abajo se filtra a los pozos de ese clúster.</div>
+
+    <div class="edit-field">
+      <label>Campo</label>
+      <select id="eqCampo">
+        <option value="MORICHE" ${campo==='MORICHE'?'selected':''}>MORICHE</option>
+        <option value="ABARCO" ${campo==='ABARCO'?'selected':''}>ABARCO</option>
+      </select>
+    </div>
+
+    <div class="edit-field">
+      <label>Hora de inicio / movilización</label>
+      <input type="time" id="eqHoraMov" value="${escAttr(horaMovilizacion)}">
+    </div>
+
+    <div class="edit-field">
+      <label><input type="checkbox" id="eqMovilizado" ${movilizado?'checked':''}> Hubo movilización (cambio de clúster) hoy</label>
+    </div>
+    <div id="eqMovFields" style="${movilizado?'':'display:none;'}">
+      <div class="edit-field">
+        <label>Ubicación actual (clúster de origen)</label>
+        <input type="text" id="eqUbicActual" value="${escAttr(ubicacionActual)}" placeholder="Ej. Clúster K">
+      </div>
+      <div class="edit-field">
+        <label>Ubicación destino (clúster, o C.P + pozo si es a cabeza)</label>
+        <input type="text" id="eqUbicDestino" value="${escAttr(ubicacionDestino)}" placeholder="Ej. Clúster BG o C.P B005">
+      </div>
+    </div>
+
+    <div class="section-label" style="border-top:none;padding-top:0;margin-top:6px;">Pozos en pruebas</div>
+    <div id="pozoRows">${regDraftPozos.map((r,i) => pozoRowEditHtml(i, r)).join('')}</div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:6px;" id="addPozoRow" ${!regDraftCluster?'disabled':''}>+ Agregar pozo</button>
+
+    <div class="edit-field" style="margin-top:14px;">
+      <label>Observación</label>
+      <textarea id="eqObservacion" placeholder="Fallas del equipo, pozos no medidos y motivo, etc.">${escHtml(observacion)}</textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="cancelEqEdit">Cancelar</button>
+      <button class="btn btn-primary" id="saveEqEdit">Guardar reporte del equipo</button>
+    </div>
+    ${existing ? `<button class="btn btn-ghost" style="width:100%;margin-top:10px;" id="deleteEqEntry">Eliminar reporte de este equipo hoy</button>` : ''}
+  `;
+}
+
+function openRegistroDiario(){
+  registroDate = todayStr();
+  regEditingEquipo = null;
+  regDraftPozos = [];
+  regDraftCluster = '';
+  renderRegistroDiario();
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+
+function renderRegistroDiario(){
+  document.getElementById('sheetContent').innerHTML = registroDiarioHtml();
+  document.getElementById('closeSheet')?.addEventListener('click', closeDetail);
+
+  document.getElementById('regFecha')?.addEventListener('change', (e) => {
+    registroDate = e.target.value;
+    renderRegistroDiario();
+  });
+
+  document.querySelectorAll('.eqreg-card').forEach(el => {
+    el.addEventListener('click', () => {
+      regEditingEquipo = el.dataset.equipo;
+      regDraftPozos = [];
+      regDraftCluster = '';
+      renderRegistroDiario();
+    });
+  });
+
+  document.getElementById('exportRegCsv')?.addEventListener('click', () => exportRegistroDiaCsv(registroDate));
+
+  // edit-form handlers
+  document.getElementById('cancelEqEdit')?.addEventListener('click', () => {
+    regEditingEquipo = null;
+    regDraftPozos = [];
+    regDraftCluster = '';
+    renderRegistroDiario();
+  });
+
+  document.getElementById('eqCluster')?.addEventListener('change', (e) => {
+    const newCluster = e.target.value;
+    if (newCluster !== regDraftCluster){
+      // cluster changed: drop pozo picks that no longer belong to it
+      regDraftCluster = newCluster;
+      regDraftPozos = [{pozo:'', cambio:'SI'}];
+      const found = POZOS.find(p => p.cluster === newCluster);
+      if (found){
+        const campoSel = document.getElementById('eqCampo');
+        if (campoSel) campoSel.value = found.campo;
+      }
+    }
+    renderRegistroDiario();
+  });
+
+  document.getElementById('eqMovilizado')?.addEventListener('change', (e) => {
+    document.getElementById('eqMovFields').style.display = e.target.checked ? '' : 'none';
+  });
+
+  document.getElementById('addPozoRow')?.addEventListener('click', () => {
+    syncDraftFromInputs();
+    regDraftPozos.push({pozo:'', cambio:'SI'});
+    renderRegistroDiario();
+  });
+
+  document.querySelectorAll('.pozo-row-del').forEach(el => {
+    el.addEventListener('click', () => {
+      syncDraftFromInputs();
+      const idx = parseInt(el.dataset.idx, 10);
+      regDraftPozos.splice(idx, 1);
+      if (regDraftPozos.length === 0) regDraftPozos.push({pozo:'', cambio:'SI'});
+      renderRegistroDiario();
+    });
+  });
+
+  document.getElementById('saveEqEdit')?.addEventListener('click', saveEquipoEntry);
+  document.getElementById('deleteEqEntry')?.addEventListener('click', deleteEquipoEntry);
+}
+
+function syncDraftFromInputs(){
+  document.querySelectorAll('.pozo-row-select').forEach(sel => {
+    const idx = parseInt(sel.dataset.idx, 10);
+    if (regDraftPozos[idx]) regDraftPozos[idx].pozo = sel.value;
+  });
+  document.querySelectorAll('.pozo-row-cambio').forEach(sel => {
+    const idx = parseInt(sel.dataset.idx, 10);
+    if (regDraftPozos[idx]) regDraftPozos[idx].cambio = sel.value;
+  });
+}
+
+function saveEquipoEntry(){
+  syncDraftFromInputs();
+  const clusterHoy = document.getElementById('eqCluster').value;
+  const campo = document.getElementById('eqCampo').value;
+  const movilizado = document.getElementById('eqMovilizado').checked;
+  const ubicacionActual = movilizado ? document.getElementById('eqUbicActual').value.trim() : '';
+  const ubicacionDestino = movilizado ? document.getElementById('eqUbicDestino').value.trim() : '';
+  const horaMovilizacion = document.getElementById('eqHoraMov').value;
+  const observacion = document.getElementById('eqObservacion').value.trim();
+  const pozos = regDraftPozos.filter(p => p.pozo && p.pozo.trim() !== '');
+
+  const equipo = regEditingEquipo;
+  const fecha = registroDate;
+  const existingIdx = registros.findIndex(r => r.fecha === fecha && r.equipo === equipo);
+  const entry = {
+    id: existingIdx >= 0 ? registros[existingIdx].id : ('r' + Date.now() + Math.random().toString(36).slice(2,7)),
+    fecha, equipo, clusterHoy, campo, movilizado, ubicacionActual, ubicacionDestino, horaMovilizacion,
+    pozos, observacion,
+    ts: new Date().toISOString()
+  };
+  if (existingIdx >= 0) registros[existingIdx] = entry; else registros.push(entry);
+  saveRegistros();
+
+  regEditingEquipo = null;
+  regDraftPozos = [];
+  regDraftCluster = '';
+  renderRegistroDiario();
+}
+
+function deleteEquipoEntry(){
+  registros = registros.filter(r => !(r.fecha === registroDate && r.equipo === regEditingEquipo));
+  saveRegistros();
+  regEditingEquipo = null;
+  regDraftPozos = [];
+  regDraftCluster = '';
+  renderRegistroDiario();
+}
+
+function exportRegistroDiaCsv(fecha){
+  const header = ['MPFM','CAMPO','CLUSTER','MOVILIZACION (DESTINO)','HORA','POZO EN PRUEBA','CAMBIO DE POZO DIA ANTERIOR','OBSERVACION'];
+  const rows = [];
+  EQUIPOS.forEach(eq => {
+    const e = entryFor(fecha, eq);
+    if (!e){
+      rows.push([eq, '', '', '', '', '', '', '']);
+      return;
+    }
+    const clusterLabel = e.clusterHoy ? `Clúster ${e.clusterHoy}` : (e.ubicacionActual || '');
+    if (e.pozos.length === 0){
+      rows.push([e.equipo, e.campo, clusterLabel, e.movilizado ? e.ubicacionDestino : '', e.horaMovilizacion, '', '', e.observacion]);
+    } else {
+      e.pozos.forEach((p, i) => {
+        rows.push([
+          i===0 ? e.equipo : '',
+          i===0 ? e.campo : '',
+          i===0 ? clusterLabel : '',
+          i===0 ? (e.movilizado ? e.ubicacionDestino : '') : '',
+          i===0 ? e.horaMovilizacion : '',
+          p.pozo,
+          p.cambio,
+          i===0 ? e.observacion : ''
+        ]);
+      });
+    }
+  });
+  const csvLines = [header, ...rows].map(r => r.map(csvEscape).join(';'));
+  const csvContent = '\uFEFF' + csvLines.join('\r\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `reporte_diario_mpfm_${fecha}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function closeDetail(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+}
+
+document.getElementById('overlay').addEventListener('click', closeDetail);
+document.getElementById('historyBtn').addEventListener('click', openHistory);
+document.getElementById('elecBtn').addEventListener('click', openElectricidad);
+document.getElementById('regBtn').addEventListener('click', openRegistroDiario);
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  state.query = e.target.value;
+  document.getElementById('clearBtn').classList.toggle('show', state.query.length > 0);
+  render();
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  state.query = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').classList.remove('show');
+  render();
+});
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    const clickedCampo = t.dataset.campo;
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    if (state.campo === clickedCampo){
+      // tapping the already-active tab collapses the list back
+      state.campo = null;
+    } else {
+      t.classList.add('active');
+      state.campo = clickedCampo;
+    }
+    render();
+  });
+});
+
+render();
+updateHistoryPip();
+</script>
+
+<div class="foot-note">FASE 1 · MVP — MORICHE / ABARCO · 100% OFFLINE<br>Las novedades se guardan solo en este dispositivo/navegador — usa "Copiar historial" para reportarlas y actualizar la base maestra.</div>
+
+</body>
+</html>
